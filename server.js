@@ -41,9 +41,49 @@ app.get("/all", function(req, res) {
   });
 });
 
+//=================
+// Scrape data from one site and place it into the mongodb db
+//=================
+
+app.get("/scrape", function (req, res){
+
+  request ("https://www.nytimes.com/", function (error, response, html){
+
+      var $ = cheerio.load(html);
+
+      $(".story-heading").each(function(i, element) {
+            var title = $(this).children("a").text();
+            var link = $(this).children("a").attr("href");
+//==================if they both exist save in to db ===================
+              if (title && link) {
+                // Insert the data in the scrapedData db
+                db.nytData.insert({
+                  title: title,
+                  link: link
+                },
+                function(err, saved) {
+                  if (err) {
+                    // Log the error if one is encountered during the query
+            console.log(err);
+          }
+            else {
+              // Otherwise, log the inserted data
+              console.log(saved);
+            }
+});
 
 
 
+
+
+
+
+              }
+
+      });
+  })
+  res.send("NYT Scrape Complete");
+})
 
 
 
