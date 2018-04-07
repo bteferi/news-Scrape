@@ -1,93 +1,108 @@
-// Dependencies
 var express = require("express");
-var mongojs = require("mongojs");
-// Require request and cheerio. This makes the scraping possible
-var request = require("request");
+var bodyParser = require("body-parser");
+var logger = require("morgan");
+var mongoose = require("mongoose");
+
+var axios = require("axios");
 var cheerio = require("cheerio");
+
+// Require all models
+var db = require("./models");
+
+var PORT = 3000;
 
 // Initialize Express
 var app = express();
 
-// Database configuration
-var databaseUrl = "nytArticles";
-var collections = ["Headline"];
+// Configure middleware
 
-// Hook mongojs configuration to the db variable - from npm docs
-var db = mongojs(databaseUrl, collections);
-db.on("error", function(error) {
-  console.log("Database Error:", error);
+// Use morgan logger for logging requests
+app.use(logger("dev"));
+// Use body-parser for handling form submissions
+app.use(bodyParser.urlencoded({ extended: true }));
+// Use express.static to serve the public folder as a static directory
+app.use(express.static("public"));
+
+// By default mongoose uses callbacks for async queries, we're setting it to use promises (.then syntax) instead
+// Connect to the Mongo DB
+mongoose.Promise = Promise;
+mongoose.connect("mongodb://localhost/week18Populater", {
+  useMongoClient: true
 });
 
-app.get("/", function(req, res) {
-  res.send("Hello World")
-});
+// Routes
 
-// route 1
-// this will retrive data from nyt
+// A GET route for scraping the echojs website
+app.get("/scrape", function(req, res) {
 
+  axios.get("https://www.nytimes.com/").then(function(response) {
 
-// find everything - do 20 articles
-app.get("/all", function(req, res) {
-  // Find all results from the scrapedData collection in the db
-  db.Headline.find({}, function(error, found) {
-    // Throw any errors to the console
-    if (error) {
-      console.log(error);
-    }
-    // If there are no errors, send the data to the browser as json
-    else {
-      res.json(found);
-    }
+    var $ = cheerio.load(response.data);
+
+    $(".story-heading").each(function(i, element) {
+      // Save an empty result object
+      var result = {};
+
+      result.title = $(this).children("a").text();
+      result.link = $(this).children("a").attr("href");
+
+      db.Headline.create(result)
+        .then(function(dbArticle) {
+          console.log(dbArticle);
+        })
+        .catch(function(err) {
+          return res.json(err);
+        });
+    });
+    console.log(res)
+    res.send("Scrape Complete");
   });
 });
 
-//=================
-// Scrape data from one site and place it into the mongodb db
-//=================
-
-app.get("/scrape", function(req, res) {
-
-  request("https://www.nytimes.com/", function(error, response, html) {
-
-    var $ = cheerio.load(html);
-
-    $(".story-heading").each(function(i, element) {
-      var title = $(this).children("a").text();
-      var link = $(this).children("a").attr("href");
-      //==================if they both exist save in to db ===================
-      if (title && link) {
-        // Insert the data in the scrapedData db
-        db.Headline.insert({
-            title: title,
-            link: link
-          },
-          function(err, saved) {
-            if (err) {
-              // Log the error if one is encountered during the query
-              console.log(err);
-            } else {
-              // Otherwise, log the inserted data
-              console.log(saved);
-            }
-          });
-
-
-      }
-
+app.get("/articles", function(req, res) {
+  db.Headline.find({})
+    .then(function(dbArticle) {
+      res.json(dbArticle);
+    })
+    .catch(function(err) {
+      res.json(err);
     });
-  })
-  res.send("NYT Scrape Complete");
-})
+});
 
+app.get("/articles/:id", function(req, res) {
+  db.Headline.findOne({
+      _id: req.params.id
+    })
+    .populate("note")
+    .then(function(dbArticle) {
+      res.json(dbArticle);
+    })
+    .catch(function(err) {
+      res.json(err);
+    });
+});
 
+app.post("/articles/:id", function(req, res) {
+  db.Note.create(req.body)
+    .then(function(dbNote) {
 
+      return db.Headline.findOneAndUpdate({
+        _id: req.params.id
+      }, {
+        note: dbNote._id
+      }, {
+        new: true
+      });
+    })
+    .then(function(dbArticle) {
+      res.json(dbArticle);
+    })
+    .catch(function(err) {
+      res.json(err);
+    });
+});
 
-
-
-
-
-
-// Listen on port 3000
-app.listen(3000, function() {
-  console.log("App running on port 3000!");
+// Start the server
+app.listen(PORT, function() {
+  console.log("App running on port " + PORT + "!");
 });
