@@ -33,6 +33,12 @@ mongoose.connect("mongodb://localhost/nytArticles", {
 // Routes
 
 // A GET route for scraping the echojs website
+
+
+
+
+
+
 app.get("/scrape", function(req, res) {
 
   axios.get("https://www.nytimes.com/").then(function(response) {
@@ -56,6 +62,7 @@ app.get("/scrape", function(req, res) {
     });
     console.log(res)
     res.send("Scrape Complete");
+     // window.location.href = "/";
   });
 });
 
