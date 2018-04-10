@@ -1,4 +1,10 @@
 // Grab the articles as a json
+
+
+$("#startScraping").click(function handleFormSubmit(event) {
+      // location.href = "/scrape"
+
+
 $.getJSON("/articles", function(data) {
   // For each one
   for (var i = 0; i < 5; i++) {
@@ -17,7 +23,6 @@ $.getJSON("/articles", function(data) {
     "<br>");
   }
 });
-
 
 //==========================maybe here I can add ?
 // Whenever someone clicks a p tag
@@ -63,22 +68,6 @@ $(document).on("click", "button", function() {
 });
 
 
-$("#startScraping").click(function handleFormSubmit(event) {
-  alert("button clicked")
-  location.href = "/scrape"
-    // location.href="/"
-    if(location.href = "/scrape"){
-      alert("Scrape Complete")
-      location.href = "/"
-    }
-})
-
-
-
-
-
-
-
 
 //==
 //
@@ -115,4 +104,6 @@ $(document).on("click", "#savenote", function(commentdata) {
   // Also, remove the values entered in the input and textarea for note entry
   $("#titleinput").val("");
   $("#bodyinput").val("");
+});
+
 });
