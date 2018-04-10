@@ -30,3 +30,6 @@ A web app that lets users view and leave comments on the latest news.
 5. cheerio
 
 6. request
+
+
+![Come back next time](newsScrape.gif)
